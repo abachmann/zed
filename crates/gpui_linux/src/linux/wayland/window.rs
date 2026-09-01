@@ -1299,7 +1299,7 @@ impl WaylandWindowStatePtr {
                     .compositor
                     .create_region(&state.globals.qh, ());
 
-                let bounds = state.window_bounds.map(|v| f32::from(v) as i32);
+                let bounds = state.bounds.map(|v| f32::from(v) as i32);
 
                 region.add(
                     bounds.origin.x,
@@ -1995,13 +1995,14 @@ fn update_window(mut state: RefMut<WaylandWindowState>) {
     let opaque = !state.is_transparent();
 
     state.renderer.update_transparency(!opaque);
-    let opaque_area = state.window_bounds.map(|v| f32::from(v) as i32);
+    let opaque_area = state.bounds.map(|v| f32::from(v) as i32);
     opaque_area.inset(f32::from(state.inset()) as i32);
 
     let region = state
         .globals
         .compositor
         .create_region(&state.globals.qh, ());
+ 
     region.add(
         opaque_area.origin.x,
         opaque_area.origin.y,
