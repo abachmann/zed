@@ -1151,6 +1151,7 @@ impl WaylandWindowStatePtr {
                 self.frame();
             } else {
                 update_window(self.state.borrow_mut());
+                self.request_redraw();
             }
         }
     }
