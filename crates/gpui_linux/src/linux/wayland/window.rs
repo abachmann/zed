@@ -2241,18 +2241,24 @@ fn update_window(mut state: RefMut<WaylandWindowState>) {
 
     state.renderer.update_transparency(!opaque);
 
+    let area = inset_by_tiling(
+        state.bounds.map_origin(|_| px(0.0)),
+        state.inset(),
+        state.tiling,
+    )
+    .map(|v| f32::from(v) as i32)
+    .map_size(|v| v.max(0));
+
+    let region = state
+        .globals
+        .compositor
+        .create_region(&state.globals.qh, ());
+
     // Note that rounded corners make this rectangle API hard to work with.
     // As this is common when using CSD, let's just disable this API.
     if state.background_appearance == WindowBackgroundAppearance::Opaque
         && state.decorations == WindowDecorations::Server
     {
-        let area = state.window_bounds.map(|v| f32::from(v) as i32);
-        area.inset(f32::from(state.inset()) as i32);
-
-        let region = state
-            .globals
-            .compositor
-            .create_region(&state.globals.qh, ());
         region.add(
             area.origin.x,
             area.origin.y,
@@ -2264,8 +2270,6 @@ fn update_window(mut state: RefMut<WaylandWindowState>) {
         // contains no transparent pixels. This allows the compositor to skip
         // updating whatever is behind the surface for better performance.
         state.surface.set_opaque_region(Some(&region));
-
-        region.destroy();
     } else {
         state.surface.set_opaque_region(None);
     }
@@ -2285,22 +2289,18 @@ fn update_window(mut state: RefMut<WaylandWindowState>) {
                 state.background_effects = Some(background_effects);
             }
 
-            let area = state.bounds.map(|v| f32::from(v) as i32);
-            area.inset(f32::from(state.inset()) as i32);
-
-            let region = state
-                .globals
-                .compositor
-                .create_region(&state.globals.qh, ());
-            region.add(0, 0, area.size.width, area.size.height);
+            region.add(
+                area.origin.x,
+                area.origin.y,
+                area.size.width,
+                area.size.height,
+            );
 
             state
                 .background_effects
                 .as_ref()
                 .unwrap()
                 .set_blur_region(Some(&region));
-
-            region.destroy();
         } else {
             // It probably doesn't hurt to clear the blur for opaque windows
             if let Some(b) = state.background_effects.take() {
@@ -2324,6 +2324,8 @@ fn update_window(mut state: RefMut<WaylandWindowState>) {
             }
         }
     }
+
+    region.destroy();
 }
 
 pub(crate) trait WindowDecorationsExt {
